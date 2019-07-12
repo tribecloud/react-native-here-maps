@@ -3,10 +3,13 @@ package com.heremapsrn.react.map;
 import android.content.Context;
 import android.graphics.PointF;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.TextView;
 
 
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.here.android.mpa.common.ApplicationContext;
 import com.here.android.mpa.common.GeoCoordinate;
 import com.here.android.mpa.common.MapEngine;
 import com.here.android.mpa.common.OnEngineInitListener;
@@ -15,10 +18,12 @@ import com.here.android.mpa.mapping.Map;
 import com.here.android.mpa.mapping.MapGesture;
 import com.here.android.mpa.mapping.MapMarker;
 import com.here.android.mpa.mapping.MapObject;
+import com.here.android.mpa.mapping.MapOverlay;
 import com.here.android.mpa.mapping.MapView;
 import com.here.android.mpa.common.Image;
 import com.heremapsrn.R;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +34,8 @@ public class HereMapView extends MapView {
 
     private static final String MAP_TYPE_NORMAL = "normal";
     private static final String MAP_TYPE_SATELLITE = "satellite";
+
+    private Button button;
 
     private Map map;
 
@@ -41,12 +48,17 @@ public class HereMapView extends MapView {
 
     ArrayList<MapMarker> markers;
 
-    public HereMapView(Context context) {
+    public HereMapView(final Context context) {
         super(context);
 
         markers = new ArrayList<MapMarker>();
 
-        MapEngine.getInstance().init(context, new OnEngineInitListener() {
+        // Set up disk cache path for the map service for this application
+        boolean success = com.here.android.mpa.common.MapSettings.setIsolatedDiskCacheRootPath(
+                context.getExternalFilesDir(null) + File.separator + ".here-maps",
+                "com.heremapsrn");
+
+        MapEngine.getInstance().init(new ApplicationContext(context), new OnEngineInitListener() {
             @Override
             public void onEngineInitializationCompleted(OnEngineInitListener.Error error) {
                 if (error == OnEngineInitListener.Error.NONE) {
@@ -85,19 +97,25 @@ public class HereMapView extends MapView {
                                                 // map marker, so we can do something with it
                                                 // (like change the visibility, or more
                                                 // marker-specific actions)
-                                                if(((MapMarker) viewObj).isInfoBubbleVisible()){
-                                                    ((MapMarker) viewObj).hideInfoBubble();
-                                                } else {
-                                                    ((MapMarker) viewObj).showInfoBubble();
-                                                }
+                                                MapMarker mapMarker = (MapMarker) viewObj;
+                                                TextView helloTextView = new TextView(context);
+                                                helloTextView.setText(mapMarker.getTitle());
+                                                MapOverlay mapOverlay = new MapOverlay(helloTextView, mapMarker.getCoordinate());
+                                                mapOverlay.setAnchorPoint(new PointF(80.0f, 150.0f));
+                                                // map.addMapOverlay(mapOverlay);
 
+                                                button = new Button(context);
+                                                button.setText(mapMarker.getTitle());
+                                                // create overlay and add it to the map
+                                                map.addMapOverlay(
+                                                        new MapOverlay(button, mapMarker.getCoordinate()));
                                             }
                                         }
                                     }
                                     // return false to allow the map to handle this callback also
                                     return false;
                                 }
-                            });
+                            }, 1, true );
 
 
 
