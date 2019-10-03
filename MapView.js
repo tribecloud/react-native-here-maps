@@ -56,6 +56,8 @@ var iface = {
     userLocation: PropTypes.Object,
 
     markersList: PropTypes.array,
+
+    onCenterChanged: PropTypes.func,
   },
 };
 
@@ -113,7 +115,8 @@ export default class MapView extends React.Component {
         mapType={ this.props.mapType }
         initialZoom={ this.props.initialZoom } 
         userLocation={this.props.userLocation}
-        markersList={this.props.markersList} >
+        markersList={this.props.markersList}
+        onCenterChanged={(event) => this.props.onCenterChanged({latitude: event.nativeEvent.latitude, longitude: event.nativeEvent.longitude})} >
 
         <View style={{ position:'absolute', top: 10, right: 10,
                        width: 50, height: 120,

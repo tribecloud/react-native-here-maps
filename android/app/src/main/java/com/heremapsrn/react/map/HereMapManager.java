@@ -43,6 +43,12 @@ class HereMapManager extends ViewGroupManager<HereMapView> {
                 "setCenter", COMMAND_SET_CENTER);
     }
 
+    @Nullable
+    @Override
+    public Map<String, Object> getExportedCustomDirectEventTypeConstants() {
+        return MapBuilder.of("onCenterChanged", (Object) MapBuilder.of("registrationName", "onCenterChanged"));
+    }
+
     @Override
     public void receiveCommand(HereMapView view,
                                int commandType,

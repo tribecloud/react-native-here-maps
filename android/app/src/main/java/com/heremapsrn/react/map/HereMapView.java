@@ -2,11 +2,16 @@ package com.heremapsrn.react.map;
 
 import android.content.Context;
 import android.graphics.PointF;
+import android.os.Handler;
 import android.util.Log;
 
 
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.here.android.mpa.common.GeoCoordinate;
 import com.here.android.mpa.common.MapEngine;
 import com.here.android.mpa.common.OnEngineInitListener;
@@ -15,6 +20,7 @@ import com.here.android.mpa.mapping.Map;
 import com.here.android.mpa.mapping.MapGesture;
 import com.here.android.mpa.mapping.MapMarker;
 import com.here.android.mpa.mapping.MapObject;
+import com.here.android.mpa.mapping.MapState;
 import com.here.android.mpa.mapping.MapView;
 import com.here.android.mpa.common.Image;
 import com.heremapsrn.R;
@@ -40,6 +46,25 @@ public class HereMapView extends MapView {
     private double zoomLevel = 10;
 
     ArrayList<MapMarker> markers;
+    final Handler mSettledHandler = new Handler();
+    private Runnable mRunnable = new Runnable() {
+        @Override
+        public void run() {
+            GeoCoordinate coordinate = getMap().getCenter();
+            WritableMap map = Arguments.createMap();
+            map.putDouble("latitude", coordinate.getLatitude());
+            map.putDouble("longitude", coordinate.getLongitude());
+
+            final ReactContext context = (ReactContext) getContext();
+            context.getJSModule(RCTEventEmitter.class).receiveEvent(
+                    getId(),
+                    "onCenterChanged",
+                    map
+            );
+
+            Log.i(TAG, String.format("Lat: %.12f, lng: %.12f", coordinate.getLatitude(), coordinate.getLongitude()));
+        }
+    };
 
     public HereMapView(Context context) {
         super(context);
@@ -72,6 +97,22 @@ public class HereMapView extends MapView {
                     setMapType(mapType);
 
                     setZoomLevel(zoomLevel);
+
+                    getMap().addTransformListener(new Map.OnTransformListener() {
+                        @Override
+                        public void onMapTransformStart() {
+                            Log.i(TAG, "Transform start");
+                            mSettledHandler.removeCallbacks(mRunnable);
+                            mSettledHandler.postDelayed(mRunnable, 1000);
+                        }
+
+                        @Override
+                        public void onMapTransformEnd(MapState mapState) {
+                            Log.i(TAG, "Transform end");
+                            mSettledHandler.removeCallbacks(mRunnable);
+                            mSettledHandler.postDelayed(mRunnable, 1000);
+                        }
+                    });
 
                     // Create a gesture listener on marker object
                     getMapGesture().addOnGestureListener(
